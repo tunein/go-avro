@@ -1033,6 +1033,10 @@ func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, names
 	setOptionalField(&schema.Doc, v, schemaDocField)
 	schema.Properties = getProperties(v)
 
+	if schema.Namespace != "" {
+		namespace = schema.Namespace
+	}
+
 	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry), nil
 }
 

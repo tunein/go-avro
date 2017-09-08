@@ -214,6 +214,16 @@ func TestEnumSchema(t *testing.T) {
 	if !arrayEqual(s.(*EnumSchema).Symbols, []string{"A", "B", "C", "D"}) {
 		t.Errorf("\n%s \n===\n Enum symbols should be [\"A\", \"B\", \"C\", \"D\"]. Actual %#v", raw, s.(*EnumSchema).Symbols)
 	}
+
+	raw = `{"type":"enum", "namespace":"com.foo.corp", "name":"foo", "symbols":["A", "B", "C", "D"]}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
+	if s.(*EnumSchema).Name != "foo" {
+		t.Errorf("\n%s \n===\n Enum name should be 'foo'. Actual %#v", raw, s.(*EnumSchema).Name)
+	}
+	if s.(*EnumSchema).Namespace != "com.foo.corp" {
+		t.Errorf("\n%s \n===\n Enum namespace should be 'com.foo.corp'. Actual %#v", raw, s.(*EnumSchema).Name)
+	}
 }
 
 func TestUnionSchema(t *testing.T) {
