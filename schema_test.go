@@ -215,14 +215,16 @@ func TestEnumSchema(t *testing.T) {
 		t.Errorf("\n%s \n===\n Enum symbols should be [\"A\", \"B\", \"C\", \"D\"]. Actual %#v", raw, s.(*EnumSchema).Symbols)
 	}
 
-	raw = `{"type":"enum", "namespace":"com.foo.corp", "name":"foo", "symbols":["A", "B", "C", "D"]}`
+	raw = `{"type":"record","name":"FooRec","namespace":"com.foo.corp.a","fields":[{"name":"a","type":{"type":"enum", "namespace":"com.foo.corp.b", "name":"foo", "symbols":["A", "B", "C", "D"]}},{"name":"b","type":"com.foo.corp.b.foo"}]}`
 	s, err = ParseSchema(raw)
 	assert(t, err, nil)
-	if s.(*EnumSchema).Name != "foo" {
-		t.Errorf("\n%s \n===\n Enum name should be 'foo'. Actual %#v", raw, s.(*EnumSchema).Name)
-	}
-	if s.(*EnumSchema).Namespace != "com.foo.corp" {
-		t.Errorf("\n%s \n===\n Enum namespace should be 'com.foo.corp'. Actual %#v", raw, s.(*EnumSchema).Name)
+	for i := 0; i < 2; i++ {
+		if s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Name != "foo" {
+			t.Errorf("\n%s \n===\n Enum name should be 'foo'. Actual %#v", raw, s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Name)
+		}
+		if s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Namespace != "com.foo.corp.b" {
+			t.Errorf("\n%s \n===\n Enum namespace should be 'com.foo.corp.b'. Actual %#v", raw, s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Namespace)
+		}
 	}
 }
 
