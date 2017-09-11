@@ -214,6 +214,18 @@ func TestEnumSchema(t *testing.T) {
 	if !arrayEqual(s.(*EnumSchema).Symbols, []string{"A", "B", "C", "D"}) {
 		t.Errorf("\n%s \n===\n Enum symbols should be [\"A\", \"B\", \"C\", \"D\"]. Actual %#v", raw, s.(*EnumSchema).Symbols)
 	}
+
+	raw = `{"type":"record","name":"FooRec","namespace":"com.foo.corp.a","fields":[{"name":"a","type":{"type":"enum", "namespace":"com.foo.corp.b", "name":"foo", "symbols":["A", "B", "C", "D"]}},{"name":"b","type":"com.foo.corp.b.foo"}]}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
+	for i := 0; i < 2; i++ {
+		if s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Name != "foo" {
+			t.Errorf("\n%s \n===\n Enum name should be 'foo'. Actual %#v", raw, s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Name)
+		}
+		if s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Namespace != "com.foo.corp.b" {
+			t.Errorf("\n%s \n===\n Enum namespace should be 'com.foo.corp.b'. Actual %#v", raw, s.(*RecordSchema).Fields[i].Type.(*EnumSchema).Namespace)
+		}
+	}
 }
 
 func TestUnionSchema(t *testing.T) {
