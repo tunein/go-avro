@@ -339,12 +339,19 @@ func (this sDatumReader) fillRecord(field Schema, record reflect.Value, dec Deco
 		rf := record.Elem()
 		for i := range plan.decodePlan {
 			entry := &plan.decodePlan[i]
+
+			if entry.index == nil {
+				// field exists in writer schema but not in reader. skip.
+				entry.dec(reflect.Value{}, dec)
+				continue
+			}
+
 			structField := rf.FieldByIndex(entry.index)
 			value, err := entry.dec(structField, dec)
-
 			if err != nil {
 				return err
 			}
+
 			if value.IsValid() {
 				structField.Set(value)
 			}
