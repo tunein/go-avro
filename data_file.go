@@ -2,6 +2,7 @@ package avro
 
 import (
 	"bytes"
+	"compress/flate"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -39,7 +40,10 @@ type DataFileReader struct {
 	dec          Decoder
 	blockDecoder Decoder
 	datum        DatumReader
+	decompressor decompressor
 }
+
+type decompressor func([]byte) ([]byte, error)
 
 // The header for object container files
 type objFileHeader struct {
@@ -84,6 +88,11 @@ func newDataFileReaderBytes(buf []byte, datumReader DatumReader) (reader *DataFi
 
 	if reader.header, err = readObjFileHeader(dec); err != nil {
 		return nil, err
+	}
+
+	codec := reader.header.Meta[codecKey]
+	if codec != nil && string(codec) == "deflate" {
+		reader.decompressor = undeflate
 	}
 
 	schema, err := ParseSchema(string(reader.header.Meta[schemaKey]))
@@ -177,6 +186,16 @@ func (reader *DataFileReader) NextBlock() error {
 	if err != nil {
 		return err
 	}
+
+	if reader.decompressor != nil {
+		d, err := reader.decompressor(block.Data[:block.BlockSize])
+		if err != nil {
+			return fmt.Errorf("block decompress failed: %v", err)
+		}
+		block.Data = d
+		block.BlockSize = len(d)
+	}
+
 	syncBuffer := make([]byte, syncSize)
 	err = reader.dec.ReadFixed(syncBuffer)
 	if err != nil {
@@ -188,6 +207,32 @@ func (reader *DataFileReader) NextBlock() error {
 	reader.blockDecoder.SetBlock(reader.block)
 
 	return nil
+}
+
+// Close any resources opened by the DataFileReader
+func (reader *DataFileReader) Close() error {
+	return nil
+}
+
+func undeflate(data []byte) ([]byte, error) {
+	var errs []error
+
+	r := flate.NewReader(bytes.NewReader(data))
+
+	out, err := ioutil.ReadAll(r)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := r.Close(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("failed to undeflate: %v", errs)
+	}
+
+	return out, nil
 }
 
 ////////// DATA FILE WRITER
